@@ -15,10 +15,14 @@ contract SimpleStorage {
     //dynamic array which indicates that the array can grow in size
     Person[] public listOfPeople; // []
 
+
     //static array can only have a max number of 3 items
     //Person[3] public listOfPeople; //[] 
 
     Person public pat = Person({favoriteNumber: 7, name: "Pat"});
+
+    // chealsea -> 232
+    mapping(string => uint256) public nameToFavoriteNumber; 
 
     //store the favorite number 
     function store(uint256 _favoriteNumber) public {
@@ -30,8 +34,10 @@ contract SimpleStorage {
         return favoriteNumber;
     }
 
+    //calldata, memory, storage 
     function addPerson(string memory _name, uint256 _favoriteNumber) public {
         listOfPeople.push( Person(_favoriteNumber, _name) );
+        nameToFavoriteNumber[_name] = _favoriteNumber;
     }
     
 }
