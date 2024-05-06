@@ -5,38 +5,59 @@
 
 pragma solidity ^0.8.25; 
 
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {PriceConverter} from "./PriceConverter.sol";
 
 contract FundMe {
 
-    uint256 public minimunUsd = 5; 
+    using PriceConverter for uint256; //attach price converter library to all unit256 
+
+    uint256 public minimumUsd = 5e18;
+
+    address[] public funders;
+    mapping(address funder => uint256 amountFunded) public addressToAmountFunded; 
+
+    address public owner;
+    constructor() {
+        owner = msg.sender;
+    }
 
     function fund() public payable {
+        msg.value.getConversionRate();
         // Allow users to send 5
         // Have a minimum $ sent $5
         // 1. How do we send ETH to this contract?
-    //  require(msg.value > 1e18, "didn't send enough ETH"); // 1e18 = 1 ETH = 1000000000000000000
-        require(msg.value >= minimunUsd, "didn't send enough ETH");
+        require(msg.value.getConversionRate() >= minimumUsd, "didn't send enough ETH"); // 1e18 = 1 ETH = 1000000000000000000
+        funders.push(msg.sender);
+        // addressToAmountFunded[msg.sender] = addressToAmountFunded[msg.sender] + msg.value;
+       addressToAmountFunded[msg.sender] = msg.value;
     }
-    // function withdraw() public {}
+    
+     function withdraw() public {
+        
+        // using a for loop for(starting index, ending index stop amount)
+        for (uint256 funderIndex = 0; funderIndex < funders.length; funderIndex++) {
+           address funder = funders[funderIndex];
+           addressToAmountFunded[funder] = 0;
+        }
 
-    function getPrice() public view returns(uint256){
-        // Address
-        // ABI 
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x1868EAEd088f0B65363960928296D119b62c3184);
-        (,int256 price,,,) = priceFeed.latestRoundData();
-        // Price of ETH in terms of USD
-        // 2000.00000000
-        return uint256(price * 1e10);
-    }
+        // reset the array 
+        funders = new address[](0);
 
-    function getConversionRate(uint256 ethAmount) public view returns(uint256) {
-        uint256 ethPrice = getPrice();
-        uint256 ethAmountInUsd = (ethPrice * ethAmount) / 1e18;
-        return ethAmountInUsd;
-    }
+        // withdrew the funds
 
-    function getVersion() public view returns (uint256) {
-        return AggregatorV3Interface(0x1868EAEd088f0B65363960928296D119b62c3184).version();
-    }
+        //transfer
+        payable(msg.sender).transfer(address(this).balance);
+        //send
+        bool sendSuccess = payable(msg.sender).send(address(this).balance);
+        require(sendSuccess, "Send failed");
+        // call
+        (bool callSuccess, ) = payable(msg.sender).call{value: address(this).balance}("");
+        require(callSuccess, "Call failed");
+     }
+
+     modifier  onlyOwner() {
+        require(msg.sender == owner, "Sender is not owner!");
+        _;
+     }
+
 }
