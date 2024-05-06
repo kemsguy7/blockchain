@@ -5,37 +5,7 @@
 
 pragma solidity ^0.8.25; 
 
-
-//get the interface of the extenal contract
-interface AggregatorV3Interface {
-        function decimals() external view returns (uint8); 
-
-        function description() external view returns (string memory);
-
-        function version() external view returns (uint256); 
-        
-        function getRoundData(uint80 _roundId)
-        external 
-        view 
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt, 
-            uint256 updatedAt,
-            uint80 answeredInRound 
-        );
-
-        function latestRoundData()
-        external 
-        view 
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt, 
-            uint256 updatedAt, 
-            uint80 answeredInRound 
-        );
-    }
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract FundMe {
 
@@ -50,12 +20,21 @@ contract FundMe {
     }
     // function withdraw() public {}
 
-    function getPrice() public {
+    function getPrice() public view returns(uint256){
         // Address
         // ABI 
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(0x1868EAEd088f0B65363960928296D119b62c3184);
+        (,int256 price,,,) = priceFeed.latestRoundData();
+        // Price of ETH in terms of USD
+        // 2000.00000000
+        return uint256(price * 1e10);
     }
 
-    function getConversionRate() public {}
+    function getConversionRate(uint256 ethAmount) public view returns(uint256) {
+        uint256 ethPrice = getPrice();
+        uint256 ethAmountInUsd = (ethPrice * ethAmount) / 1e18;
+        return ethAmountInUsd;
+    }
 
     function getVersion() public view returns (uint256) {
         return AggregatorV3Interface(0x1868EAEd088f0B65363960928296D119b62c3184).version();
